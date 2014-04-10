@@ -8,7 +8,7 @@ class ActiveRecord::Base
       super
     end
   end
-  
+
   def dump_for_delayed_job
     "#{self.class};#{id}"
   end
@@ -21,15 +21,16 @@ module Delayed
       # Contains the work object as a YAML field.
       class Job < ::ActiveRecord::Base
         include Delayed::Backend::Base
-        set_table_name :delayed_jobs
-        
+
+        self.table_name = "delayed_jobs"
+
         before_save :set_default_run_at
 
         named_scope :ready_to_run, lambda {|worker_name, max_run_time|
           {:conditions => ['(run_at <= ? AND (locked_at IS NULL OR locked_at < ?) OR locked_by = ?) AND failed_at IS NULL', db_time_now, db_time_now - max_run_time, worker_name]}
         }
         named_scope :by_priority, :order => 'priority ASC, run_at ASC'
-        
+
         def self.after_fork
           ::ActiveRecord::Base.connection.reconnect!
         end
@@ -44,7 +45,7 @@ module Delayed
           scope = self.ready_to_run(worker_name, max_run_time)
           scope = scope.scoped(:conditions => ['priority >= ?', Worker.min_priority]) if Worker.min_priority
           scope = scope.scoped(:conditions => ['priority <= ?', Worker.max_priority]) if Worker.max_priority
-      
+
           ::ActiveRecord::Base.silence do
             scope.by_priority.all(:limit => limit)
           end
