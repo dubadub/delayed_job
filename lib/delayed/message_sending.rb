@@ -1,5 +1,5 @@
 module Delayed
-  class DelayProxy < ActiveSupport::BasicObject
+  class DelayProxy < ActiveSupport::ProxyObject
     def initialize(target, options)
       @target = target
       @options = options
@@ -18,7 +18,7 @@ module Delayed
       DelayProxy.new(self, options)
     end
     alias __delay__ delay
-    
+
     def send_later(method, *args)
       warn "[DEPRECATION] `object.send_later(:method)` is deprecated. Use `object.delay.method"
       __delay__.__send__(method, *args)
@@ -28,7 +28,7 @@ module Delayed
       warn "[DEPRECATION] `object.send_at(time, :method)` is deprecated. Use `object.delay(:run_at => time).method"
       __delay__(:run_at => time).__send__(method, *args)
     end
-    
+
     module ClassMethods
       def handle_asynchronously(method, opts = {})
         aliased_method, punctuation = method.to_s.sub(/([?!=])$/, ''), $1
@@ -49,5 +49,5 @@ module Delayed
         alias_method_chain method, :delay
       end
     end
-  end                               
+  end
 end
